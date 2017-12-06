@@ -1,53 +1,63 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
+﻿using Prism.Commands;
+using Prism.Mvvm;
+using Prism.Navigation;
 
-using Xamarin.Forms;
-
-namespace CommTracMobile
+namespace CommTracMobile.ViewModels
 {
-    public class BaseViewModel : INotifyPropertyChanged
+    public class BaseViewModel : BindableBase, INavigationAware
     {
-        public IDataStore<Item> DataStore => DependencyService.Get<IDataStore<Item>>() ?? new MockDataStore();
+        protected INavigationService _navigationService { get; }
 
-        bool isBusy = false;
-        public bool IsBusy
+        public BaseViewModel(INavigationService navigationService)
         {
-            get { return isBusy; }
-            set { SetProperty(ref isBusy, value); }
+            _navigationService = navigationService;
+            LogoutCommand = new DelegateCommand(OnLogoutCommandExecuted);
+            NavigateCommand = new DelegateCommand<string>(OnNavigateCommandExecuted);
         }
 
-        string title = string.Empty;
+        public DelegateCommand LogoutCommand { get; }
+
+        private string _title;
         public string Title
         {
-            get { return title; }
-            set { SetProperty(ref title, value); }
+            get { return _title; }
+            set { SetProperty(ref _title, value); }
         }
 
-        protected bool SetProperty<T>(ref T backingStore, T value,
-            [CallerMemberName]string propertyName = "",
-            Action onChanged = null)
+        private bool _isBusy;
+        public bool IsBusy
         {
-            if (EqualityComparer<T>.Default.Equals(backingStore, value))
-                return false;
-
-            backingStore = value;
-            onChanged?.Invoke();
-            OnPropertyChanged(propertyName);
-            return true;
+            get { return _isBusy; }
+            set { SetProperty(ref _isBusy, value, () => RaisePropertyChanged(nameof(IsNotBusy))); }
         }
 
-        #region INotifyPropertyChanged
-        public event PropertyChangedEventHandler PropertyChanged;
-        protected void OnPropertyChanged([CallerMemberName] string propertyName = "")
+        public bool IsNotBusy
         {
-            var changed = PropertyChanged;
-            if (changed == null)
-                return;
-
-            changed.Invoke(this, new PropertyChangedEventArgs(propertyName));
+            get { return !IsBusy; }
         }
-        #endregion
+
+        public virtual void OnNavigatedFrom(NavigationParameters parameters)
+        {
+
+        }
+
+        public virtual void OnNavigatedTo(NavigationParameters parameters)
+        {
+
+        }
+
+        public virtual void OnNavigatingTo(NavigationParameters parameters)
+        {
+
+        }
+
+        public void OnLogoutCommandExecuted() => _navigationService.NavigateAsync("/Login");
+
+        public DelegateCommand<string> NavigateCommand { get; }
+
+        private async void OnNavigateCommandExecuted(string path)
+        {
+            await _navigationService.NavigateAsync(path);
+        }
     }
 }
